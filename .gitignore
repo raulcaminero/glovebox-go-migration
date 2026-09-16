@@ -1,0 +1,22 @@
+# Go
+/go-service/bin/
+/gateway/bin/
+/tools/ai-pr-review/bin/
+*.test
+*.out
+
+# Node
+/legacy-nest/node_modules/
+/legacy-nest/dist/
+/legacy-nest/legacy.sqlite
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
+
+# Env
+.env
+.env.local
+/gateway/gateway
+/tools/ai-pr-review/ai-pr-review

@@ -1,0 +1,19 @@
+run:
+  timeout: 3m
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - ineffassign
+    - gofmt
+    - goimports
+    - revive
+    - bodyclose
+    - sqlclosecheck
+
+issues:
+  exclude-dirs:
+    - internal/repo/sqlcgen # generated code
