@@ -4,6 +4,7 @@
 /tools/ai-pr-review/bin/
 *.test
 *.out
+*.exe
 
 # Node
 /legacy-nest/node_modules/
