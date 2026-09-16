@@ -19,7 +19,8 @@ legacy-nest/     "Before" — a minimal NestJS service (Policyholder CRUD,
 
 go-service/      "After" — the same domain rewritten in Go: clean
                  layered architecture, Postgres via pgx+sqlc, JWT auth,
-                 table-driven tests.
+                 Policyholder + Policy + Notes entities, structured slog logging,
+                 OpenTelemetry trace spans, and table-driven unit tests.
 
 gateway/         A strangler-fig reverse proxy that routes requests to
                  legacy-nest or go-service by path prefix — the mechanism
@@ -55,9 +56,9 @@ tools/ai-pr-review/  A small Go program that sends a PR diff to the
      ┌───────────────┐      ┌───────────────┐
      │  legacy-nest   │      │   go-service   │
      │  (NestJS/Nest) │      │      (Go)      │
-     │  not-yet-       │      │  policyholders │
-     │  migrated       │      │  & policies    │
-     │  routes         │      │                │
+     │  not-yet-       │      │  policyholders│
+     │  migrated       │      │  policies     │
+     │  routes         │      │  & notes      │
      └───────────────┘      └───────┬────────┘
                                      ▼
                               ┌──────────────┐
@@ -105,7 +106,7 @@ that violated the architecture boundary and how `CLAUDE.md`'s stated rules
 caught it in review. `tools/ai-pr-review/` is a small working tool that
 automates a first pass of that same check against a PR diff.
 
-## Running it
+## Running & Testing
 
 **Prerequisites:** Go 1.22+, Node 20+, Docker (for Postgres).
 
@@ -113,7 +114,7 @@ automates a first pass of that same check against a PR diff.
 # 1. Start Postgres
 docker compose up -d postgres
 
-# 2. Go service — first run needs `go mod tidy` to fetch dependencies
+# 2. Go service
 cd go-service
 go mod tidy
 export DATABASE_URL="postgres://glovebox:glovebox@localhost:5432/glovebox"
@@ -142,12 +143,19 @@ curl -H "Authorization: Bearer $TOKEN" \
 # Which of your clients have coverage expiring in the next 30 days?
 curl -H "Authorization: Bearer $TOKEN" \
      "http://localhost:8000/api/v1/policies/expiring?within_days=30"
+
+# Add a note for a policyholder
+curl -H "Authorization: Bearer $TOKEN" \
+     -X POST http://localhost:8000/api/v1/policyholders/$ID/notes \
+     -d '{"author":"Agent Smith","body":"Client requested quote update"}'
 ```
 
 Watch the `X-Routed-To` response header — it shows whether the gateway
 sent that request to `go-service` (migrated) or `legacy-nest` (not yet).
 
-**Tests:** `cd go-service && make test`
+**Unit Tests:**
+- Go service: `cd go-service && go test -v ./...`
+- Legacy Nest service: `cd legacy-nest && npm test`
 
 ## What I'd do differently at GloveBox's actual scale
 
