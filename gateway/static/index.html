@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GloveBox CRM — Legacy-to-Go Migration Control Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0B0F17;
+      --bg-card: rgba(18, 24, 38, 0.75);
+      --bg-card-hover: rgba(26, 35, 54, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-bright: rgba(255, 255, 255, 0.18);
+      
+      --text-main: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --text-dim: #6B7280;
+
+      --go-emerald: #10B981;
+      --go-emerald-glow: rgba(16, 185, 129, 0.25);
+      --node-amber: #F59E0B;
+      --node-amber-glow: rgba(245, 158, 11, 0.25);
+      --cyan-accent: #06B6D4;
+      --purple-accent: #8B5CF6;
+
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+
+      --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.05) 0%, transparent 40%);
+    }
+
+    /* Layout */
+    .app-container {
+      max-width: 1350px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 28px;
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--cyan-accent), var(--go-emerald));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #000;
+      font-size: 20px;
+      box-shadow: 0 0 20px var(--go-emerald-glow);
+    }
+
+    .brand-title h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Status Badges */
+    .status-cluster {
+      display: flex;
+      gap: 12px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 10px #10B981;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.amber {
+      background: #F59E0B;
+      box-shadow: 0 0 10px #F59E0B;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.9); }
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-card);
+      padding: 6px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition-fast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-btn.active {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-bright);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Tab Content */
+    .tab-pane {
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .tab-pane.active {
+      display: flex;
+    }
+
+    /* Cards & Grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 14px;
+    }
+
+    .card-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Strangler Visualizer */
+    .architecture-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 30px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--border-color);
+      position: relative;
+    }
+
+    .arch-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      min-width: 170px;
+      text-align: center;
+      z-index: 2;
+    }
+
+    .arch-node.gateway {
+      border-color: var(--cyan-accent);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+    }
+
+    .arch-node.go {
+      border-color: var(--go-emerald);
+      box-shadow: 0 0 20px var(--go-emerald-glow);
+    }
+
+    .arch-node.nest {
+      border-color: var(--node-amber);
+      box-shadow: 0 0 20px var(--node-amber-glow);
+    }
+
+    .arch-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .arch-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .flow-line {
+      flex: 1;
+      height: 2px;
+      background: var(--border-color);
+      margin: 0 15px;
+      position: relative;
+    }
+
+    .flow-line.active-go {
+      background: linear-gradient(90deg, var(--cyan-accent), var(--go-emerald));
+      box-shadow: 0 0 10px var(--go-emerald);
+    }
+
+    .flow-line.active-nest {
+      background: linear-gradient(90deg, var(--cyan-accent), var(--node-amber));
+      box-shadow: 0 0 10px var(--node-amber);
+    }
+
+    /* Endpoint List */
+    .endpoint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .endpoint-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      transition: var(--transition-fast);
+    }
+
+    .endpoint-item:hover {
+      border-color: var(--border-bright);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .endpoint-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .method-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .method-tag.get { background: rgba(16, 185, 129, 0.15); color: #34D399; }
+    .method-tag.post { background: rgba(6, 182, 212, 0.15); color: #38BDF8; }
+    .method-tag.delete { background: rgba(239, 68, 68, 0.15); color: #F87171; }
+
+    .endpoint-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    .route-target-pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .route-target-pill.go {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .route-target-pill.nest {
+      background: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* Console Inspector */
+    .console-box {
+      background: #05080E;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      min-height: 220px;
+      max-height: 350px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .console-header-line {
+      color: var(--cyan-accent);
+      font-weight: 600;
+    }
+
+    .console-key { color: var(--text-muted); }
+    .console-val-go { color: var(--go-emerald); font-weight: 600; }
+    .console-val-nest { color: var(--node-amber); font-weight: 600; }
+
+    /* Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 12px 16px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+    }
+
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .data-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Form Controls */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: linear-gradient(135deg, var(--cyan-accent), var(--go-emerald));
+      color: #000;
+      font-weight: 600;
+      font-size: 13px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px var(--go-emerald-glow);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: none;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--cyan-accent);
+    }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-active { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+    .badge-expiring { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+
+    /* ADR View */
+    .adr-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .adr-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-logo">GB</div>
+        <div class="brand-title">
+          <h1>GloveBox CRM Migration Control Center</h1>
+          <p>Incremental Node/NestJS ➔ Go Strangler-Fig Rollout</p>
+        </div>
+      </div>
+      <div class="status-cluster">
+        <div class="status-pill">
+          <div class="status-dot"></div>
+          Gateway :8000
+        </div>
+        <div class="status-pill">
+          <div class="status-dot"></div>
+          Go Service :8080
+        </div>
+        <div class="status-pill">
+          <div class="status-dot amber"></div>
+          NestJS :3001
+        </div>
+        <div class="status-pill">
+          <div class="status-dot"></div>
+          Postgres :5435
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('strangler')">
+        🔀 Strangler Routing Map
+      </button>
+      <button class="tab-btn" onclick="switchTab('crm')">
+        💼 CRM Data Manager
+      </button>
+      <button class="tab-btn" onclick="switchTab('adrs')">
+        📐 ADR Architecture Records
+      </button>
+      <button class="tab-btn" onclick="switchTab('ai')">
+        🤖 AI Guardrails & PR Reviewer
+      </button>
+    </div>
+
+    <!-- TAB 1: Strangler Visualizer -->
+    <div id="tab-strangler" class="tab-pane active">
+      <div class="card">
+        <div class="card-header">
+          <h2>🔀 Live Strangler-Fig Gateway Traffic Map</h2>
+          <span class="badge badge-active">Active Router</span>
+        </div>
+        
+        <div class="architecture-diagram">
+          <div class="arch-node gateway">
+            <div class="arch-title">Gateway Proxy</div>
+            <div class="arch-subtitle">Port :8000 (Strangler Router)</div>
+          </div>
+          
+          <div id="flow-indicator" class="flow-line active-go"></div>
+
+          <div class="arch-node go">
+            <div class="arch-title">Go Microservice</div>
+            <div class="arch-subtitle">Port :8080 (pgx + sqlc)</div>
+          </div>
+
+          <div class="arch-node nest">
+            <div class="arch-title">Legacy NestJS</div>
+            <div class="arch-subtitle">Port :3001 (TypeORM)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2>Configured Service Endpoints</h2>
+            <button class="btn btn-secondary" onclick="executeApiTest('/api/v1/policyholders')">Run Test Suite</button>
+          </div>
+          
+          <div class="endpoint-list">
+            <div class="endpoint-item">
+              <div class="endpoint-info">
+                <span class="method-tag get">GET</span>
+                <span class="endpoint-path">/api/v1/policyholders</span>
+              </div>
+              <div class="route-target-pill go">X-Routed-To: go-service</div>
+              <button class="btn btn-secondary" onclick="executeApiTest('/api/v1/policyholders')">Test</button>
+            </div>
+
+            <div class="endpoint-item">
+              <div class="endpoint-info">
+                <span class="method-tag get">GET</span>
+                <span class="endpoint-path">/api/v1/policies/expiring?within_days=30</span>
+              </div>
+              <div class="route-target-pill go">X-Routed-To: go-service</div>
+              <button class="btn btn-secondary" onclick="executeApiTest('/api/v1/policies/expiring?within_days=30')">Test</button>
+            </div>
+
+            <div class="endpoint-item">
+              <div class="endpoint-info">
+                <span class="method-tag post">POST</span>
+                <span class="endpoint-path">/api/v1/policyholders/{id}/notes</span>
+              </div>
+              <div class="route-target-pill go">X-Routed-To: go-service</div>
+              <button class="btn btn-secondary" onclick="executeApiTest('/api/v1/policyholders')">Test</button>
+            </div>
+
+            <div class="endpoint-item">
+              <div class="endpoint-info">
+                <span class="method-tag get">GET</span>
+                <span class="endpoint-path">/api/v1/legacy-contacts</span>
+              </div>
+              <div class="route-target-pill nest">X-Routed-To: legacy-nest</div>
+              <button class="btn btn-secondary" onclick="executeApiTest('/api/v1/legacy-contacts')">Test</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Live Gateway Inspector Output</h2>
+            <span id="test-latency" class="badge badge-active">Latency: -- ms</span>
+          </div>
+
+          <div class="console-box" id="console-output">
+            <div class="console-header-line">// Click "Test" on any endpoint above to trigger a live Gateway request</div>
+            <div>[System] Gateway active on http://localhost:8000</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: CRM Data Explorer -->
+    <div id="tab-crm" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <h2>Policyholders & Active Policies (Go Backend)</h2>
+          <button class="btn" onclick="openCreateModal()">+ Create Policyholder</button>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="policyholders-tbody">
+            <tr>
+              <td colspan="6" style="text-align:center; color: var(--text-muted);">Loading Policyholders from Go Service...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 3: ADRs -->
+    <div id="tab-adrs" class="tab-pane">
+      <div class="grid-3">
+        <div class="adr-card">
+          <div class="adr-tag">ADR 0001</div>
+          <h3>Rewrite Backend in Go</h3>
+          <p style="font-size:13px; color:var(--text-muted);">Why migrate from NestJS to Go incrementally using strangler-fig pattern.</p>
+          <div style="margin-top:10px; font-size:12px; color:var(--cyan-accent);">Status: Accepted</div>
+        </div>
+
+        <div class="adr-card">
+          <div class="adr-tag">ADR 0002</div>
+          <h3>pgx + sqlc over ORM</h3>
+          <p style="font-size:13px; color:var(--text-muted);">Why raw SQL + compile-time generated Go code beat GORM for search & queries.</p>
+          <div style="margin-top:10px; font-size:12px; color:var(--cyan-accent);">Status: Accepted</div>
+        </div>
+
+        <div class="adr-card">
+          <div class="adr-tag">ADR 0003</div>
+          <h3>Strangler-Fig Gateway</h3>
+          <p style="font-size:13px; color:var(--text-muted);">Why a reverse proxy routing layer beats a high-risk big-bang cutover.</p>
+          <div style="margin-top:10px; font-size:12px; color:var(--cyan-accent);">Status: Accepted</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: AI Guardrails -->
+    <div id="tab-ai" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <h2>AI Coding Guardrails & Automated PR Reviewer</h2>
+        </div>
+
+        <div class="grid-2">
+          <div class="adr-card">
+            <h3>CLAUDE.md Rules Enforced</h3>
+            <ul style="padding-left:18px; font-size:13px; color:var(--text-muted); display:flex; flex-direction:column; gap:8px;">
+              <li>Zero framework imports (pgx, sqlc, chi) inside <code>internal/domain</code></li>
+              <li>Service layer depends strictly on domain interfaces</li>
+              <li>HTTP handlers stay thin (decode request -> call service -> encode)</li>
+              <li>Table-driven tests for all new business rules</li>
+            </ul>
+          </div>
+
+          <div class="adr-card">
+            <h3>Automated PR Audit CLI (`tools/ai-pr-review`)</h3>
+            <p style="font-size:13px; color:var(--text-muted);">
+              A custom Go tool that sends PR diffs to the Claude API to automatically check compliance against <code>CLAUDE.md</code> standards before human code review.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Create Modal -->
+  <div class="modal-overlay" id="create-modal">
+    <div class="modal-card">
+      <h3>Create New Policyholder (Go API)</h3>
+      <input type="text" id="input-name" class="input-field" placeholder="Full Name (e.g. John Doe)">
+      <input type="email" id="input-email" class="input-field" placeholder="Email (e.g. john@example.com)">
+      <input type="text" id="input-phone" class="input-field" placeholder="Phone Number">
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+        <button class="btn" onclick="submitCreatePolicyholder()">Create Policyholder</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const jwtToken = "dev-token-glovebox";
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+
+      if (tabId === 'crm') {
+        loadPolicyholders();
+      }
+    }
+
+    async function executeApiTest(endpoint) {
+      const consoleBox = document.getElementById('console-output');
+      const latencyBadge = document.getElementById('test-latency');
+      const flowIndicator = document.getElementById('flow-indicator');
+
+      const startTime = performance.now();
+      
+      try {
+        const res = await fetch(endpoint, {
+          headers: { 'Authorization': 'Bearer ' + jwtToken }
+        });
+
+        const duration = Math.round(performance.now() - startTime);
+        const routedTo = res.headers.get('X-Routed-To') || 'go-service';
+        const data = await res.json();
+
+        latencyBadge.textContent = `Latency: ${duration} ms`;
+
+        if (routedTo === 'go-service') {
+          flowIndicator.className = 'flow-line active-go';
+        } else {
+          flowIndicator.className = 'flow-line active-nest';
+        }
+
+        consoleBox.innerHTML = `
+          <div class="console-header-line">HTTP GET ${endpoint}</div>
+          <div><span class="console-key">Status:</span> ${res.status} OK</div>
+          <div><span class="console-key">X-Routed-To:</span> <span class="${routedTo === 'go-service' ? 'console-val-go' : 'console-val-nest'}">${routedTo}</span></div>
+          <div><span class="console-key">Response Body:</span></div>
+          <pre style="color:#A7F3D0; font-size:12px;">${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (err) {
+        consoleBox.innerHTML = `<div style="color:#F87171;">Error executing test: ${err.message}</div>`;
+      }
+    }
+
+    async function loadPolicyholders() {
+      const tbody = document.getElementById('policyholders-tbody');
+      try {
+        const res = await fetch('/api/v1/policyholders', {
+          headers: { 'Authorization': 'Bearer ' + jwtToken }
+        });
+        const list = await res.json();
+        
+        if (!Array.isArray(list) || list.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">No policyholders found. Click "+ Create Policyholder" to add one!</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = list.map(p => `
+          <tr>
+            <td style="font-family:'JetBrains Mono'; font-size:11px;">${p.id ? p.id.substring(0, 8) + '...' : 'N/A'}</td>
+            <td><strong>${p.full_name || p.fullName || 'N/A'}</strong></td>
+            <td>${p.email || 'N/A'}</td>
+            <td>${p.phone || 'N/A'}</td>
+            <td><span class="badge badge-active">Active</span></td>
+            <td><button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="executeApiTest('/api/v1/policyholders')">Inspect</button></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="color:#F87171; text-align:center;">Failed to connect to Go Service API</td></tr>`;
+      }
+    }
+
+    function openCreateModal() {
+      document.getElementById('create-modal').classList.add('active');
+    }
+
+    function closeCreateModal() {
+      document.getElementById('create-modal').classList.remove('active');
+    }
+
+    async function submitCreatePolicyholder() {
+      const name = document.getElementById('input-name').value;
+      const email = document.getElementById('input-email').value;
+      const phone = document.getElementById('input-phone').value;
+
+      if (!name || !email) {
+        alert("Please enter Name and Email");
+        return;
+      }
+
+      await fetch('/api/v1/policyholders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + jwtToken
+        },
+        body: JSON.stringify({ full_name: name, email: email, phone: phone })
+      });
+
+      closeCreateModal();
+      loadPolicyholders();
+    }
+  </script>
+</body>
+</html>
