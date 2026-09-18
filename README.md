@@ -117,7 +117,7 @@ docker compose up -d postgres
 # 2. Go service
 cd go-service
 go mod tidy
-export DATABASE_URL="postgres://glovebox:glovebox@localhost:5432/glovebox"
+export DATABASE_URL="postgres://glovebox:glovebox@localhost:5435/glovebox"
 export JWT_SECRET="dev-secret-change-me"
 make migrate-up   # requires goose: https://github.com/pressly/goose
 make run          # listens on :8080
