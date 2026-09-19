@@ -4,46 +4,38 @@
 Accepted
 
 ## Context
-The Go rewrite needs a data access layer for Postgres. The team is used to
-TypeORM-style ergonomics from the NestJS side (entities, decorators,
-`repo.find(...)`). Query performance and predictability matter for
-GloveBox's search/filter and reporting endpoints (e.g., "policies expiring
-in N days" across large policyholder sets), and the JD calls out "database
-query optimization" explicitly as a required skill.
+The Go rewrite requires a high-performance database access layer for Postgres. The team is accustomed to TypeORM-style ergonomics from NestJS (entities, decorators, `repo.find(...)`). However, query performance, predictability, and safety matter for GloveBox's search and reporting endpoints (e.g., *"policies expiring in N days"* across large policyholder datasets).
+
+The job description explicitly calls out "database query optimization" as a core requirement.
 
 ## Decision
-Use `pgx/v5` as the Postgres driver and `sqlc` to generate type-safe Go
-code from hand-written SQL, instead of a Go ORM (e.g., GORM, ent).
+Use `pgx/v5` as the PostgreSQL driver and `sqlc` to generate type-safe Go code from hand-written SQL files, rather than using a runtime Go ORM (such as GORM or Ent).
 
-Queries live as plain `.sql` files in `db/queries/`; `sqlc generate`
-produces typed structs and methods in `internal/repo/sqlcgen/`, which the
-Postgres adapter (`internal/repo/*_pg.go`) wraps behind the domain's repo
-interfaces. The service layer never imports pgx or sqlc types directly.
+Queries live as plain `.sql` files in `db/queries/`. Running `sqlc generate` produces typed structs and execution methods in `internal/repo/sqlcgen/`. Domain services interact strictly with repository interfaces (`domain.PolicyholderRepo`, `domain.PolicyRepo`), insulating business logic from database driver imports.
 
-## Alternatives Considered
-- **GORM**: familiar ORM ergonomics for the team, but hides the generated
-  SQL, makes N+1 query patterns easy to introduce accidentally, and
-  reflection-based scanning has a real performance cost at scale.
-- **`database/sql` + hand-written scanning**: full control, no codegen
-  dependency, but too much repetitive boilerplate as the schema grows —
-  every new query means hand-writing `Scan()` calls and struct mapping.
-- **ent (Facebook's Go ORM)**: strong type safety and graph-style
-  queries, but a steeper learning curve and more magic (code generation
-  from a schema DSL rather than from SQL you write yourself) than the
-  team needs for a CRM's relatively standard query patterns.
+## Alternatives & Persistence Layer Stacks Considered
+
+### 1. GORM (Traditional Go ORM)
+- **Approach**: Use GORM with struct annotations and dynamic query builder methods (`db.Where(...).Find(&policies)`).
+- **Pros**: Familiar ORM ergonomics for developers coming from TypeORM or Prisma; auto-generates schema migrations.
+- **Cons**: Uses runtime reflection for row scanning, adding garbage collection pressure; obscures generated SQL, making N+1 query patterns and inefficient JOINs easy to accidentally introduce.
+
+### 2. Standard `database/sql` + Manual Row Scanning
+- **Approach**: Write queries using standard library `database/sql` and hand-write `rows.Scan(&p.ID, &p.Name, ...)` calls.
+- **Pros**: Zero third-party code generator dependencies; full raw SQL control.
+- **Cons**: Highly repetitive boilerplate code; every schema update requires manual maintenance of column indexes and scanning lines.
+
+### 3. Ent (Facebook's Graph ORM for Go)
+- **Approach**: Define schemas using Ent's Go DSL and generate graph-based query builders.
+- **Pros**: Strongly-typed graph traversals and schema validation.
+- **Cons**: Steeper learning curve; schema DSL code generation creates high abstraction overhead for standard CRM relational queries.
+
+## Real-World Industry Precedents
+- **GitHub & Stripe**: Prefer raw SQL query generation tools (`sqlc`) or lightweight mappers over full ORMs for core transactional paths to maintain 100% reviewable SQL in pull requests and prevent N+1 performance regressions.
 
 ## Consequences
-+ Every query's exact SQL is visible and reviewable in a PR — no ORM
-  black box generating unexpected joins or N+1 patterns.
-+ Compile-time safety on query parameters and result shapes without
-  runtime reflection.
-+ Because the domain layer only depends on repo *interfaces*
-  (`domain.PolicyholderRepo`, `domain.PolicyRepo`), the service layer and
-  its tests never import pgx/sqlc — swapping the persistence layer later
-  wouldn't touch business logic.
-- Schema changes require running `sqlc generate` and committing the
-  output; this is an extra step compared to an ORM inferring everything
-  from struct tags, and needs to be documented for new engineers
-  (see Makefile `generate` target).
-- Team gives up ORM conveniences like automatic migrations-from-entities;
-  migrations are managed explicitly via `goose`.
++ **100% Reviewable SQL**: Every query executed in production is plain SQL visible in PR diffs — no ORM black-box generation.
++ **Compile-Time Safety**: Parameter types and result column shapes are verified by `sqlc` during compilation; column type changes break the build before hitting production.
++ **Zero Reflection Overhead**: `sqlc` generates direct struct assignment code, maximizing execution speed and minimizing GC overhead.
+- **Codegen Step**: Schema changes require running `sqlc generate` and committing generated Go artifacts (documented in Makefile `generate` target).
+- **Explicit Migration Tooling**: Schema migrations are managed explicitly via `goose` scripts rather than inferred automatically from ORM structs.
