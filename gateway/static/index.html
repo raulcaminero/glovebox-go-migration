@@ -715,6 +715,20 @@
           <p style="font-size:13px; color:var(--text-muted);">Why a reverse proxy routing layer beats a high-risk big-bang cutover.</p>
           <div style="margin-top:10px; font-size:12px; color:var(--cyan-accent);">Status: Accepted</div>
         </div>
+
+        <div class="adr-card" style="cursor:pointer;" onclick="openDocModal('adr-0004', 'ADR 0004: Shared Postgres DB Coexistence')">
+          <div class="adr-tag">ADR 0004 📄 (Click to Read Full Doc)</div>
+          <h3>Shared DB Coexistence</h3>
+          <p style="font-size:13px; color:var(--text-muted);">Shared Postgres data layer during strangling vs complex CDC / Debezium dual-writes.</p>
+          <div style="margin-top:10px; font-size:12px; color:var(--cyan-accent);">Status: Accepted</div>
+        </div>
+
+        <div class="adr-card" style="cursor:pointer;" onclick="openDocModal('adr-0005', 'ADR 0005: Shadow Traffic & Canary Verification')">
+          <div class="adr-tag">ADR 0005 📄 (Click to Read Full Doc)</div>
+          <h3>Shadow Traffic & Canaries</h3>
+          <p style="font-size:13px; color:var(--text-muted);">Dark launching read requests and OpenTelemetry metric verification prior to live cutover.</p>
+          <div style="margin-top:10px; font-size:12px; color:var(--cyan-accent);">Status: Accepted</div>
+        </div>
       </div>
     </div>
 
@@ -863,25 +877,44 @@
 
         const duration = Math.round(performance.now() - startTime);
         const routedTo = res.headers.get('X-Routed-To') || 'go-service';
-        const data = await res.json();
+        const contentType = res.headers.get('Content-Type') || '';
+
+        // Safely parse — not all responses are JSON (e.g. 404 from Go router is plain text)
+        let displayBody;
+        let bodyColor = '#A7F3D0';
+        if (contentType.includes('application/json')) {
+          try {
+            const data = await res.json();
+            displayBody = JSON.stringify(data, null, 2);
+          } catch {
+            displayBody = await res.text();
+          }
+        } else {
+          displayBody = await res.text();
+          if (!res.ok) bodyColor = '#F87171';
+        }
 
         latencyBadge.textContent = `Latency: ${duration} ms`;
 
-        if (routedTo === 'go-service') {
+        if (routedTo.includes('go-service')) {
           flowIndicator.className = 'flow-line active-go';
         } else {
           flowIndicator.className = 'flow-line active-nest';
         }
 
+        const statusColor = res.ok ? '#34D399' : '#F87171';
+        const statusLabel = res.ok ? res.status + ' OK' : res.status + ' ' + res.statusText;
+        const forceLabel = currentRoutingMode !== 'auto' ? ` <span style="color:#A78BFA;">[forced → ${currentRoutingMode}]</span>` : '';
+
         consoleBox.innerHTML = `
-          <div class="console-header-line">HTTP GET ${endpoint}</div>
-          <div><span class="console-key">Status:</span> ${res.status} OK</div>
-          <div><span class="console-key">X-Routed-To:</span> <span class="${routedTo === 'go-service' ? 'console-val-go' : 'console-val-nest'}">${routedTo}</span></div>
+          <div class="console-header-line">HTTP ${res.type === 'error' ? 'GET' : 'GET'} ${endpoint}${forceLabel}</div>
+          <div><span class="console-key">Status:</span> <span style="color:${statusColor};">${statusLabel}</span></div>
+          <div><span class="console-key">X-Routed-To:</span> <span class="${routedTo.includes('go-service') ? 'console-val-go' : 'console-val-nest'}">${routedTo}</span></div>
           <div><span class="console-key">Response Body:</span></div>
-          <pre style="color:#A7F3D0; font-size:12px;">${JSON.stringify(data, null, 2)}</pre>
+          <pre style="color:${bodyColor}; font-size:12px;">${displayBody}</pre>
         `;
       } catch (err) {
-        consoleBox.innerHTML = `<div style="color:#F87171;">Error executing test: ${err.message}</div>`;
+        consoleBox.innerHTML = `<div style="color:#F87171;">Network error: ${err.message}</div>`;
       }
     }
 

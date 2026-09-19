@@ -53,6 +53,10 @@ func main() {
 				filePath = "../docs/adr/0002-pgx-sqlc-over-orm.md"
 			case "adr-0003":
 				filePath = "../docs/adr/0003-strangler-fig-over-big-bang.md"
+			case "adr-0004":
+				filePath = "../docs/adr/0004-shared-db-coexistence-over-cdc.md"
+			case "adr-0005":
+				filePath = "../docs/adr/0005-dark-launching-and-canary-telemetry.md"
 			case "claude":
 				filePath = "../CLAUDE.md"
 			case "ai-workflow":
