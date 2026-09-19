@@ -80,8 +80,8 @@ func main() {
 
 		// If it's an API request, route it through the Strangler Gateway
 		if strings.HasPrefix(r.URL.Path, "/api/") {
-			target := legacyProxy
-			routedTo := "legacy-nest"
+			targetURL := legacyURL.String()
+			routedTo := "legacy-nest (:3001)"
 
 			// Feature Flag / Manual Override check (X-Force-Backend header or ?force query param)
 			force := r.Header.Get("X-Force-Backend")
@@ -91,17 +91,21 @@ func main() {
 
 			if force == "go" {
 				target = goProxy
-				routedTo = "go-service (forced)"
+				targetURL = goServiceURL.String()
+				routedTo = "go-service (:8080) [forced]"
 			} else if force == "legacy" {
 				target = legacyProxy
-				routedTo = "legacy-nest (forced)"
+				targetURL = legacyURL.String()
+				routedTo = "legacy-nest (:3001) [forced]"
 			} else if isMigrated(r.URL.Path) {
 				target = goProxy
-				routedTo = "go-service"
+				targetURL = goServiceURL.String()
+				routedTo = "go-service (:8080)"
 			}
 
-			w.Header().Set("X-Routed-To", routedTo) // makes the routing decision visible in the demo
-			log.Printf("%s %s (force=%s) -> %s", r.Method, r.URL.Path, force, routedTo)
+			w.Header().Set("X-Routed-To", routedTo)
+			w.Header().Set("X-Target-URL", targetURL)
+			log.Printf("%s %s (force=%s) -> %s (%s)", r.Method, r.URL.Path, force, routedTo, targetURL)
 			target.ServeHTTP(w, r)
 			return
 		}

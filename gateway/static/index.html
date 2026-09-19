@@ -876,7 +876,8 @@
         });
 
         const duration = Math.round(performance.now() - startTime);
-        const routedTo = res.headers.get('X-Routed-To') || 'go-service';
+        const routedTo = res.headers.get('X-Routed-To') || (endpoint.includes('legacy') ? 'legacy-nest (:3001)' : 'go-service (:8080)');
+        const targetURL = res.headers.get('X-Target-URL') || (routedTo.includes('3001') ? 'http://localhost:3001' : 'http://localhost:8080');
         const contentType = res.headers.get('Content-Type') || '';
 
         // Safely parse — not all responses are JSON (e.g. 404 from Go router is plain text)
@@ -907,9 +908,10 @@
         const forceLabel = currentRoutingMode !== 'auto' ? ` <span style="color:#A78BFA;">[forced → ${currentRoutingMode}]</span>` : '';
 
         consoleBox.innerHTML = `
-          <div class="console-header-line">HTTP ${res.type === 'error' ? 'GET' : 'GET'} ${endpoint}${forceLabel}</div>
+          <div class="console-header-line">HTTP GET ${endpoint}${forceLabel}</div>
           <div><span class="console-key">Status:</span> <span style="color:${statusColor};">${statusLabel}</span></div>
           <div><span class="console-key">X-Routed-To:</span> <span class="${routedTo.includes('go-service') ? 'console-val-go' : 'console-val-nest'}">${routedTo}</span></div>
+          <div><span class="console-key">Target Destination:</span> <span style="color:#FBBF24; font-family:'JetBrains Mono';">${targetURL}</span></div>
           <div><span class="console-key">Response Body:</span></div>
           <pre style="color:${bodyColor}; font-size:12px;">${displayBody}</pre>
         `;
