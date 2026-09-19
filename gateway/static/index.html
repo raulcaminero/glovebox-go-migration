@@ -565,7 +565,7 @@
         💼 CRM Data Manager
       </button>
       <button class="tab-btn" onclick="switchTab('adrs')">
-        📐 ADR Architecture Records
+        📐 Hexagonal Architecture & ADRs
       </button>
       <button class="tab-btn" onclick="switchTab('ai')">
         🤖 AI Tools & Architecture Guardrails
@@ -692,9 +692,78 @@
       </div>
     </div>
 
-    <!-- TAB 3: ADRs -->
+    <!-- TAB 3: ADRs & Hexagonal Architecture -->
     <div id="tab-adrs" class="tab-pane">
-      <div class="grid-3">
+      
+      <!-- Hexagonal Architecture Visual Card -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Hexagonal Architecture (Ports & Adapters) — Layered Design</h2>
+          <span class="badge badge-active">Strict Boundary Isolation</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <p style="font-size: 13px; color: var(--text-muted);">
+            The Go service follows a strict <strong>Hexagonal (Clean) Architecture</strong> pattern. Core business domain logic is completely isolated from database drivers, HTTP frameworks, and third-party libraries.
+          </p>
+
+          <!-- Interactive Hexagonal Layers Diagram -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+            
+            <!-- Layer 1: External Adapters -->
+            <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid var(--cyan-accent); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--cyan-accent); letter-spacing: 0.05em;">1. ADAPTERS (Driving / Driven)</div>
+              <h4 style="font-size: 14px; font-weight: 600;">Transport & Persistence</h4>
+              <ul style="font-size: 12px; color: var(--text-muted); padding-left: 16px; display: flex; flex-direction: column; gap: 6px;">
+                <li><code>transport/http</code> (Chi HTTP Handlers)</li>
+                <li><code>repo/policy_pg.go</code> (Postgres Adapter)</li>
+                <li><code>repo/sqlcgen</code> (Generated SQL Code)</li>
+              </ul>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: auto;">Implements ports & handles I/O</div>
+            </div>
+
+            <!-- Layer 2: Application Services & Ports -->
+            <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid var(--purple-accent); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="font-size: 11px; font-weight: 700; color: #A78BFA; letter-spacing: 0.05em;">2. PORTS & SERVICES</div>
+              <h4 style="font-size: 14px; font-weight: 600;">Use Cases & Interfaces</h4>
+              <ul style="font-size: 12px; color: var(--text-muted); padding-left: 16px; display: flex; flex-direction: column; gap: 6px;">
+                <li><code>service/policy.go</code> (Business Rules)</li>
+                <li><code>domain.PolicyRepo</code> (Repository Port)</li>
+                <li><code>domain.PolicyholderRepo</code> (Interface)</li>
+              </ul>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: auto;">Orchestrates business logic & ports</div>
+            </div>
+
+            <!-- Layer 3: Core Domain Entities -->
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--go-emerald); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--go-emerald); letter-spacing: 0.05em;">3. CORE DOMAIN (Zero Dependencies)</div>
+              <h4 style="font-size: 14px; font-weight: 600;">Pure Domain Entities</h4>
+              <ul style="font-size: 12px; color: var(--text-muted); padding-left: 16px; display: flex; flex-direction: column; gap: 6px;">
+                <li><code>domain/policy.go</code> (Policy Entity)</li>
+                <li><code>domain/policyholder.go</code> (Entity)</li>
+                <li>Zero external imports (no pgx, sqlc, chi)</li>
+              </ul>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: auto;">Pure Go types & validation</div>
+            </div>
+          </div>
+
+          <!-- Data Flow Banner -->
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+            <span style="color: var(--cyan-accent);">HTTP Request</span> ➔ 
+            <span style="color: #A78BFA;">Chi Handler</span> ➔ 
+            <span style="color: #38BDF8;">PolicyService</span> ➔ 
+            <span style="color: #FBBF24;">PolicyRepo Interface</span> ➔ 
+            <span style="color: var(--go-emerald);">SQLC Postgres Adapter</span> ➔ 
+            <span style="color: #34D399;">PostgreSQL</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+        <span>Architecture Decision Records (ADRs)</span>
+      </div>
+
+      <div class="grid-3" style="margin-top: 12px;">
         <div class="adr-card" style="cursor:pointer;" onclick="openDocModal('adr-0001', 'ADR 0001: Rewrite Backend in Go')">
           <div class="adr-tag">ADR 0001 📄 (Click to Read Full Doc)</div>
           <h3>Rewrite Backend in Go</h3>
