@@ -10,6 +10,7 @@ package main
 
 import (
 	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -18,7 +19,7 @@ import (
 	"strings"
 )
 
-//go:embed static/index.html
+//go:embed static/*
 var staticFiles embed.FS
 
 // migratedPrefixes lists route prefixes that have already been rewritten
@@ -37,6 +38,12 @@ func main() {
 
 	legacyProxy := httputil.NewSingleHostReverseProxy(legacyURL)
 	goProxy := httputil.NewSingleHostReverseProxy(goServiceURL)
+
+	staticFS, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		log.Fatalf("failed to create static sub fs: %v", err)
+	}
+	fileServer := http.FileServer(http.FS(staticFS))
 
 	mux := http.NewServeMux()
 
@@ -57,6 +64,8 @@ func main() {
 				filePath = "../docs/adr/0004-shared-db-coexistence-over-cdc.md"
 			case "adr-0005":
 				filePath = "../docs/adr/0005-dark-launching-and-canary-telemetry.md"
+			case "adr-0006":
+				filePath = "../docs/adr/0006-react-typescript-dashboard-ui.md"
 			case "claude":
 				filePath = "../CLAUDE.md"
 			case "ai-workflow":
@@ -111,15 +120,8 @@ func main() {
 			return
 		}
 
-		// Otherwise serve the visual Dashboard UI
-		indexHTML, err := staticFiles.ReadFile("static/index.html")
-		if err != nil {
-			http.Error(w, "Dashboard UI not found", http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(indexHTML)
+		// Serve the compiled React Dashboard UI static assets
+		fileServer.ServeHTTP(w, r)
 	})
 
 	log.Printf("gateway listening on :%s (legacy=%s, go=%s)", port, legacyURL, goServiceURL)
