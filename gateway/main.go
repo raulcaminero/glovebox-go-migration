@@ -33,7 +33,7 @@ var migratedPrefixes = []string{
 func main() {
 	legacyURL := mustParseURL(envOr("LEGACY_NEST_URL", "http://localhost:3001"))
 	goServiceURL := mustParseURL(envOr("GO_SERVICE_URL", "http://localhost:8080"))
-	port := envOr("PORT", "8000")
+	port := envOr("GATEWAY_PORT", "8000")
 
 	legacyProxy := httputil.NewSingleHostReverseProxy(legacyURL)
 	goProxy := httputil.NewSingleHostReverseProxy(goServiceURL)
@@ -42,16 +42,62 @@ func main() {
 
 	// Serve the visual Migration Control Center Dashboard UI on the root route
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// If it's a documentation request, serve doc content directly
+		if strings.HasPrefix(r.URL.Path, "/api/docs/") {
+			docName := strings.TrimPrefix(r.URL.Path, "/api/docs/")
+			var filePath string
+			switch docName {
+			case "adr-0001":
+				filePath = "../docs/adr/0001-go-over-node.md"
+			case "adr-0002":
+				filePath = "../docs/adr/0002-pgx-sqlc-over-orm.md"
+			case "adr-0003":
+				filePath = "../docs/adr/0003-strangler-fig-over-big-bang.md"
+			case "claude":
+				filePath = "../CLAUDE.md"
+			case "ai-workflow":
+				filePath = "../docs/AI_WORKFLOW.md"
+			case "skill":
+				filePath = "../.agents/skills/ai-pr-review/SKILL.md"
+			default:
+				http.Error(w, "doc not found", http.StatusNotFound)
+				return
+			}
+			content, err := os.ReadFile(filePath)
+			if err != nil {
+				http.Error(w, "failed to read doc: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(content)
+			return
+		}
+
 		// If it's an API request, route it through the Strangler Gateway
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			target := legacyProxy
 			routedTo := "legacy-nest"
-			if isMigrated(r.URL.Path) {
+
+			// Feature Flag / Manual Override check (X-Force-Backend header or ?force query param)
+			force := r.Header.Get("X-Force-Backend")
+			if force == "" {
+				force = r.URL.Query().Get("force")
+			}
+
+			if force == "go" {
+				target = goProxy
+				routedTo = "go-service (forced)"
+			} else if force == "legacy" {
+				target = legacyProxy
+				routedTo = "legacy-nest (forced)"
+			} else if isMigrated(r.URL.Path) {
 				target = goProxy
 				routedTo = "go-service"
 			}
+
 			w.Header().Set("X-Routed-To", routedTo) // makes the routing decision visible in the demo
-			log.Printf("%s %s -> %s", r.Method, r.URL.Path, routedTo)
+			log.Printf("%s %s (force=%s) -> %s", r.Method, r.URL.Path, force, routedTo)
 			target.ServeHTTP(w, r)
 			return
 		}
