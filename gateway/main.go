@@ -80,6 +80,7 @@ func main() {
 
 		// If it's an API request, route it through the Strangler Gateway
 		if strings.HasPrefix(r.URL.Path, "/api/") {
+			target := legacyProxy
 			targetURL := legacyURL.String()
 			routedTo := "legacy-nest (:3001)"
 
