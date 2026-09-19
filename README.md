@@ -175,11 +175,21 @@ sent that request to `go-service` (migrated) or `legacy-nest` (not yet).
 
 ## A note on scope
 
-I've worked primarily in TypeScript/Node for 10+ years; this is a
-focused, hands-on Go project built for this interview rather than years
-of production Go experience. What I'm confident carries over regardless
-of language: the architecture instincts (interface boundaries, thin
-handlers, testable services), the migration discipline (ADRs, phased
-rollout, backward compatibility), and the team-lead track record — this
-repo's structure is deliberately the kind of thing I'd want a team of
-junior engineers to be able to extend without me in the room.
+My production background is TypeScript/Node (10+ years, including eBay and
+Thryv). I'm not presenting this as years of production Go — I'm presenting
+it as the evidence that matters more for this role: that I know how to
+design a migration correctly, enforce architecture boundaries, set up AI
+tooling guardrails, write testable services, and document decisions durably.
+
+The patterns here — ports-and-adapters layering, interface-driven repos,
+table-driven unit tests with zero database, a phased rollout roadmap that
+maps to the role's stated KPIs — are the same patterns I've applied in
+production TypeScript systems at scale. Go is the implementation language;
+the architecture instincts are language-agnostic.
+
+For React/Next.js frontend work, see:
+- **[CMHub](https://github.com/raulcaminero/cmhub)** — multi-tenant fiscal ERP
+  (Next.js App Router, NestJS, Prisma, pgvector AI copilot, Neon.tech Postgres)
+- **[Portfolio](https://github.com/raulcaminero/Portafolio)** — production Next.js
+  site deployed on Vercel
+
